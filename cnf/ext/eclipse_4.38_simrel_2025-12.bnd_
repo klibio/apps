@@ -1,0 +1,22 @@
+# Eclipse Simultaneous Release repository 
+eclipse.simrel.baseurl = http://download.eclipse.org/releases
+
+eclipse.platform.version.4.37      = 4.37
+eclipse.simrel.version.2025-09     = 2025-09
+eclipse.simrel.reltag.202509101001 = 202509101001
+
+# This was used to create the index.xml.gz file inside
+#     `/cnf/cache/p2-Eclipse SimRel ${eclipse.platform.version}/${eclipse.simrel.version}/index.xml.gz`
+# which has been renamed and moved to
+#     `cnf/ext/eclipse_${eclipse.platform.version}_simrel_${eclipse.simrel.version}_index.xml.gz`
+#
+#-plugin.p2.eclipse.simrel_2025-09: \
+#    aQute.bnd.repository.p2.provider.P2Repository; \
+#       name  = 'Eclipse P2 SimRel ${eclipse.platform.version.4.37}/${eclipse.simrel.version.2025-09}'; \
+#       url   = '${eclipse.simrel.baseurl}/${eclipse.simrel.version.2025-09}/${eclipse.simrel.reltag.202509101001}'
+
+-plugin.osgi.eclipse.simrel_2025-09: \
+    aQute.bnd.repository.osgi.OSGiRepository; \
+        name      = 'Eclipse SimRel ${eclipse.platform.version.4.37}/${eclipse.simrel.version.2025-09}'; \
+        locations = '${fileuri;${.}/eclipse_${eclipse.platform.version.4.37}_simrel_${eclipse.simrel.version.2025-09}_index.xml.gz}'; \
+        cache     = '${build}/cache/ecl_${eclipse.simrel.version.2025-09}'

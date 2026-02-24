@@ -1,0 +1,43 @@
+########################
+## BUILD SETTINGS 
+########################
+## Java Compiler Options
+#java:                  java
+#javac:                 javac
+javac.debug:            on
+
+-noimportjava: true
+# java settings are project specific imported from `.settings/org.eclipse.jdt.core.prefs`
+#javac.source:           21
+#javac.target:           21
+#javac.compliance:       21
+javac.debug:            on
+
+########################
+# Java Module System
+########################
+Automatic-Module-Name:  ${def;bsn}
+
+Bundle-Vendor:          Kirschners GmbH https://klib.io
+Bundle-Copyright:       Copyright (c) Kirschners GmbH (2025, ${tstamp;yyyy}) and others. All Rights Reserved.
+SPDX-License-Identifier: (Apache-2.0 OR EPL-2.0)
+Bundle-License:         "${SPDX-License-Identifier}";\
+                        description="This program and the accompanying materials are made available under the terms of the Apache License, Version 2.0, or the Eclipse Public License 2.0.";\
+                        link="https://opensource.org/licenses/Apache-2.0,https://opensource.org/licenses/EPL-2.0"
+Bundle-DocURL:          https://klib.io/
+Bundle-SCM:             url=https://github.com/klibio/mvn.deploy.bnd,\
+                        connection=scm:git:https://github.com/klibio/mvn.deploy.bnd.git,\
+                        developerConnection=scm:git:git@github.com/klibio/mvn.deploy.bnd.git,\
+                        tag=${git-sha-short}
+Bundle-Developers: \
+    peterkir; \
+        email=peter@klib.io; \
+        name="Peter Kirschner"; \
+        organization=Kirschners GmbH; \
+        organizationUrl=https://github.com/klibio/mvn.deploy.bnd; \
+        roles="architect,developer"; \
+        timezone="Europe/Berlin"
+
+# git properties
+git-sha-short: ${system-allow-fail;git describe --dirty --always --abbrev=9}
+git-sha:       ${system-allow-fail;git rev-list -1 --no-abbrev-commit HEAD}

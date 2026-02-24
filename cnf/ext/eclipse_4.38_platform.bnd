@@ -1,0 +1,21 @@
+# Eclipse Platform Release repository
+eclipse.platform.baseurl = http://download.eclipse.org/eclipse/updates
+
+eclipse.platform.version.4.38 = 4.38
+eclipse.platform.reltag.R-4.38-202512010920 = R-4.38-202512010920
+
+# This was used to create the index.xml.gz file inside 
+#     `/cnf/cache/p2-Eclipse Platform ${eclipse.platform.version.4.38}/index.xml.gz`
+#  which has been renamed and moved to 
+#     `cnf/ext/eclipse_${eclipse.platform.version.4.38}_platform_index.xml.gz`
+#
+-plugin.p2.eclipse.platform_4.38: \
+    aQute.bnd.repository.p2.provider.P2Repository; \
+       name  = 'Eclipse P2 Platform ${eclipse.platform.version.4.38}'; \
+       url   = '${eclipse.platform.baseurl}/${eclipse.platform.version.4.38}/${eclipse.platform.reltag.R-4.38-202512010920}'
+
+#-plugin.osgi.eclipse.platform_4.38: \
+#    aQute.bnd.repository.osgi.OSGiRepository; \
+#        name      = 'Eclipse Platform ${eclipse.platform.version.4.38}'; \
+#        locations = '${fileuri;${.}/eclipse_${eclipse.platform.version.4.38}_platform_index.xml.gz}'; \
+#        cache     = '${build}/cache/ecl_${eclipse.platform.version.4.38}'

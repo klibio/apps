@@ -1,0 +1,11 @@
+Import-Package: \
+    !com.sun.*,\
+    !gnu.*,\
+	!sun.*,\
+	!weblogic*,\
+	!kaffe*,\
+	!org.apache*,\
+	!org.eclipse.equinox.internal.*,\
+	*
+
+Private-Package: io.klib.app.p2.mirror.service

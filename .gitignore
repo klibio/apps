@@ -1,0 +1,17 @@
+*.bak
+.metadata/
+.recommenders/
+Archive
+.DS_Store
+.*.swp
+.gradle/
+build/
+bin/
+bin_test/
+cache/
+generated/
+reports/
+target/
+io.klib.app.p2.mirror/repo/
+.to
+.idea

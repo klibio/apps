@@ -1,0 +1,77 @@
+# Set javac settings from JDT prefs
+-include: ${workspace}/cnf/includes/jdt.bnd
+
+# This build requires newer Bnd features
+-require-bnd: "(version>=7.2.0)"
+
+Bundle-ActivationPolicy: lazy
+
+# This is the version to baseline this build against. 
+# see /cnf/ext/repositories.bnd and /cnf/ext/gav_99_baseline.mvn
+baseline.version: 0.0.0
+base.version:     0.1.0
+Bundle-Version:   ${base.version}.${tstamp;yyyymmdd-HHmmss}-SNAPSHOT
+# -snapshot unset (commented out) is a snapshot build. (e.g. 1.0.0-SNAPSHOT)
+# -snapshot set to a value (e.g. RC1) is a release build with the value as the Maven version qualifier. (e.g. 0.1.0-RC1)
+# -snapshot set to the empty string is a release build with no Maven version qualifier. (e.g. 0.1.0)
+-snapshot:
+
+# Maven info. The maven artifactId defaults to Bundle-SymbolicName
+-groupid:               io.klib.apps
+-pom:                   version=${if;${def;-snapshot};${versionmask;===;${@version}}-${def;-snapshot};${versionmask;===s;${@version}}}
+-maven-release:         pom,${if;${env;GPG_KEYNAME};sign\\;keyname=${env;GPG_KEYNAME}\\;passphrase=${env;GPG_PASSPHRASE}}
+
+gpg: gpg --homedir ${def;USERHOME;~}/.gnupg --pinentry-mode loopback
+
+# Don't baseline Bundle-Version
+-diffignore:  Bundle-Version
+
+# Decoration
+# https://bnd.bndtools.org/chapters/820-instructions.html#decorated-instructions
+-buildpath++: \
+    "org.osgi.annotation.bundle";~version=latest;~maven-scope=provided,\
+    "org.osgi.annotation.versioning";~version=latest;~maven-scope=provided,\
+    "org.osgi.service.component";~version=latest;~maven-scope=provided,\
+    "osgi.core";~version=latest;~maven-scope=provided
+
+#    "osgi.core";~version=latest;~maven-scope=provided,\
+#    "org.osgi.service.*.annotations";~version=latest;~maven-scope=provided
+
+# Merged Instructions
+# https://bnd.bndtools.org/chapters/820-instructions.html#merged-instructions
+-testpath.default: \
+    junit-jupiter-api
+
+
+-runrequires.default: \
+	bnd.identity;id='ch.qos.logback.core',\
+	bnd.identity;id='jul.to.slf4j',\
+	bnd.identity;id='jcl.over.slf4j',\
+	bnd.identity;id='log4j.over.slf4j',\
+	bnd.identity;id='slf4j.osgi',\
+	bnd.identity;id='org.apache.aries.spifly.dynamic.framework.extension',\
+	bnd.identity;id='org.apache.aries.spifly.dynamic.bundle',\
+    bnd.identity;id='org.apache.felix.scr'
+
+-runbundles+.default: \
+	ch.qos.logback.core;                    startlevel=1,\
+	jul.to.slf4j;                           startlevel=1,\
+	jcl.over.slf4j;                         startlevel=1,\
+	log4j.over.slf4j;                       startlevel=1,\
+	slf4j.osgi;                             startlevel=1,\
+	org.apache.aries.spifly.dynamic.framework.extension; startlevel=1,\
+	org.apache.aries.spifly.dynamic.bundle; startlevel=2,\
+    org.apache.felix.scr;                   startlevel=3,\
+	io.klib.app.p2.mirror.service;          startlevel=6,\
+    *;                                      startlevel=5,
+
+
+-make: (*).(jar);type=bnd; recipe="bnd/$1.bnd"
+-reproducible: true
+
+-plugin \
+    aQute.p2.export.P2Exporter
+
+# specific tool versions
+maven.target.version: 3.3.9
+aether.version: 1.0.2.v20150114
