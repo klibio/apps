@@ -1,0 +1,9 @@
+plugins {
+  id 'biz.aQute.bnd.workspace'
+}
+
+subprojects {
+  tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+  }
+}

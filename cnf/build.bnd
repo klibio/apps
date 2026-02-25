@@ -40,8 +40,8 @@ gpg: gpg --homedir ${def;USERHOME;~}/.gnupg --pinentry-mode loopback
 # Merged Instructions
 # https://bnd.bndtools.org/chapters/820-instructions.html#merged-instructions
 -testpath.default: \
-    junit-jupiter-api
-
+	junit-jupiter-api
+-tester: biz.aQute.tester.junit-platform
 
 -runrequires.default: \
 	bnd.identity;id='ch.qos.logback.core',\
