@@ -46,15 +46,15 @@
 	logback.configurationFile=logback.xml
 
 # exporting executable FAT jars
--groupid: io.klib.apps
--export: \
-	launchMirror.bndrun; \
-		name=p2-mirror-app.jar; \
-		bsn=p2.mirror.app, \
-	\
-	launchMirror.bndrun; \
-		name=p2-mirror-app-win32.jar; \
-		bsn=p2.mirror.app.win32
+#-groupid: io.klib.apps
+#-export: \
+#	launchMirror.bndrun; \
+#		name=p2-mirror-app.jar; \
+#		bsn=p2.mirror.app, \
+#	\
+#	launchMirror.bndrun; \
+#		name=p2-mirror-app-win32.jar; \
+#		bsn=p2.mirror.app.win32
 
 # remove source code in exported executables
 -executable: rejar=STORE,strip=*:OSGI-OPT/*

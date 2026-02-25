@@ -1,0 +1,4 @@
+#################################################
+# groupid/namespace biz.aQute.bnd
+#################################################
+io.klib.apps:io.klib.app.p2.mirror.service:${version_io.klib.apps}
