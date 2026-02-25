@@ -32,23 +32,18 @@ jobs:
       - name: Release Build
         run: ./gradlew --no-daemon clean release
 
-      - name: Ensure dist files exist
-        run: |
-          test -d dist
-          find dist -type f | head -n 1 > /dev/null
-
       - name: Upload dist bundle (internal)
         uses: actions/upload-artifact@v4
         with:
           name: dist-bundle
-          path: dist/**
+          path: dist/io/klib/apps/
           if-no-files-found: error
 
       - name: Collect dist file list
         id: collect-dist-files
         shell: bash
         run: |
-          files_json=$(find dist -type f | sort | jq -R -s -c 'split("\n")[:-1]')
+          files_json=$(find io.klib.app.p2.mirror/generated -maxdepth 1 -type f -name "*.jar" | sort | jq -R -s -c 'split("\n")[:-1]')
           echo "files=${files_json}" >> "$GITHUB_OUTPUT"
 
   upload-dist-files:
