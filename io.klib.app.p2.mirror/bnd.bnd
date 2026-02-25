@@ -44,3 +44,15 @@
 -runproperties.LOGGING: \
     java.util.logging.config.file=jul.properties,\
 	logback.configurationFile=logback.xml
+
+# Maven group ID
+-groupid: io.klib.apps
+
+-export: \
+	launchMirror.bndrun; \
+		name=p2-mirror-app.jar; \
+		bsn=p2.mirror.app, \
+	\
+	launchMirror.bndrun; \
+		name=p2-mirror-app-win32.jar; \
+		bsn=p2.mirror.app.win32
