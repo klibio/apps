@@ -58,3 +58,4 @@
 
 # remove source code in exported executables
 -executable: rejar=STORE,strip=*:OSGI-OPT/*
+Export-Package: io.klib.app.p2.mirror.service

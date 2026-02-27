@@ -8,4 +8,5 @@ Import-Package: \
 	!org.eclipse.equinox.internal.*,\
 	*
 
-Private-Package: io.klib.app.p2.mirror.service
+
+Export-Package: io.klib.app.p2.mirror.service

@@ -212,4 +212,7 @@ public class P2Mirror {
 		}
 	}
 
+	public void addMeth() {
+		System.out.println("hallo");
+	}
 }
