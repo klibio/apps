@@ -2,7 +2,7 @@
 -include: ${workspace}/cnf/includes/jdt.bnd
 
 # This build requires newer Bnd features
--require-bnd: "(version>=7.3.0)"
+-require-bnd: "(version>=7.2.1)"
 
 Bundle-ActivationPolicy: lazy
 

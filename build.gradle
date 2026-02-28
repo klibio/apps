@@ -5,10 +5,12 @@ subprojects {
 }
 
 tasks.register('sonatypeUpload', Exec) {
-    doFirst {
+    onlyIf {
       if (!System.getenv('SONATYPE_BEARER')) {
-        throw new GradleException('SONATYPE_BEARER is not set. Export SONATYPE_BEARER before running release/sonatypeUpload.')
+        logger.lifecycle('SONATYPE_BEARER is not set. Set SONATYPE_BEARER to activate sonatype upload.')
+        return false
       }
+      return true
     }
     def uploadScript = './.github/scripts/sonatype-upload.sh'
     if (System.getProperty('os.name').toLowerCase().contains('windows')) {
