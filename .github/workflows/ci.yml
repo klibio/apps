@@ -34,12 +34,12 @@ jobs:
           ./gradlew --version
           ./gradlew --no-daemon clean release
 
-#      - name: Upload dist bundle (internal)
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: dist-bundle
-#          path: dist/io/klib/apps/
-#          if-no-files-found: error
+      - name: Upload dist bundle (internal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-bundle
+          path: dist/io/klib/apps/**/*.jar
+          if-no-files-found: error
 
       - name: Collect dist file list
         id: collect-dist-files
