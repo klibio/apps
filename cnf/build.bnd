@@ -16,12 +16,12 @@ Bundle-Version:   ${base.version}.${tstamp;yyyyMMdd-HHmmss}-SNAPSHOT
 # -snapshot unset (commented out) is a snapshot build. (e.g. 1.0.0-SNAPSHOT)
 # -snapshot set to a value (e.g. RC1) is a release build with the value as the Maven version qualifier. (e.g. 0.1.0-RC1)
 # -snapshot set to the empty string is a release build with no Maven version qualifier. (e.g. 0.1.0)
-#-snapshot:
+-snapshot:
 
 -fixupmessages: "No translation found for macro: -snapshot";is:=ignore
 
 # Maven info. The maven artifactId defaults to Bundle-SymbolicName
--groupid:               io.klib.apps
+-groupid:               io.klib.services
 -pom:                   version=${if;${def;-snapshot};${versionmask;===;${@version}}-${def;-snapshot};${versionmask;===s;${@version}}}
 -maven-release:         pom,${if;${env;GPG_KEYNAME};sign\\;keyname=${env;GPG_KEYNAME}\\;passphrase=${env;GPG_PASSPHRASE}}
 
@@ -84,3 +84,6 @@ aether.version: 1.0.2.v20150114
 -baseline: *
 -baselineinludezeromajor: true
 -diffignore: Bundle-Version
+
+# remove source code in exported executables
+-executable: rejar=STORE,strip=*:OSGI-OPT/*

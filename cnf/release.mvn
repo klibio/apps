@@ -1,0 +1,9 @@
+io.klib.apps:io.klib.app.p2.mirror.service:0.2.0-SNAPSHOT
+io.klib.apps:p2.mirror.app:0.2.0.20260301-135720-SNAPSHOT
+io.klib.apps:p2.mirror.app.win32:0.2.0.20260301-135721-SNAPSHOT
+io.klib.services:io.klib.app.p2.mirror.service:0.2.0-SNAPSHOT
+io.klib.apps:p2.mirror.app:0.2.0.20260301-135750-SNAPSHOT
+io.klib.apps:p2.mirror.app.win32:0.2.0.20260301-135750-SNAPSHOT
+io.klib.apps:p2.mirror.app:0.2.0
+io.klib.apps:p2.mirror.app.win32:0.2.0
+io.klib.services:io.klib.app.p2.mirror.service:0.2.0
