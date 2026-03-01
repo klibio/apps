@@ -1,0 +1,2 @@
+# define the baseline
+io.klib.apps:io.klib.app.p2.mirror.service:${baseline.version}

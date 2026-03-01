@@ -9,9 +9,21 @@ on:
       - '**'
 
 jobs:
+  set-timestamp:
+    name: Set Timestamp
+    runs-on: ubuntu-latest
+    outputs:
+      timestamp: ${{ steps.timestamp.outputs.timestamp }}
+
+    steps:
+      - name: Set Timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +"%Y%m%d%H%M%S")" >> "$GITHUB_OUTPUT"
+
   build-release:
     name: Release Build (Java 21 canonical)
     runs-on: ubuntu-latest
+    needs: set-timestamp
     outputs:
       dist-files: ${{ steps.collect-dist-files.outputs.files }}
 
@@ -30,26 +42,43 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
 
       - name: Release Build
-        run: ./gradlew --no-daemon clean release
-
-      - name: Upload dist bundle (internal)
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-bundle
-          path: dist/io/klib/apps/
-          if-no-files-found: error
+        env:
+          SONATYPE_BEARER: ${{ secrets.SONATYPE_BEARER }}
+        run: |
+          ./gradlew --version
+          ./gradlew --no-daemon clean release
 
       - name: Collect dist file list
         id: collect-dist-files
         shell: bash
         run: |
-          files_json=$(find io.klib.app.p2.mirror/generated -maxdepth 1 -type f -name "*.jar" | sort | jq -R -s -c 'split("\n")[:-1]')
+          files_json=$(find ./dist/bundles -type f -name "*.jar" ! -name "*-javadoc*.jar" ! -name "*-sources*.jar" | sort | jq -R -s -c 'split("\n")[:-1]')
           echo "files=${files_json}" >> "$GITHUB_OUTPUT"
+          echo -e "\n#\n# Collected canonical dist files:\n#\n"
+          if [ "${files_json}" = "[]" ]; then
+            echo "  - none"
+          else
+            echo "$files_json" | jq -r '.[]' | while read file; do
+              echo "  - $file"
+            done
+          fi
+
+      - name: Upload dist bundle (internal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-bundle-${{ github.event.repository.name }}-${{ needs.set-timestamp.outputs.timestamp }}
+          path: |
+            ./dist/bundles/**/*.jar
+            !./dist/bundles/**/*-javadoc*.jar
+            !./dist/bundles/**/*-sources*.jar
+          if-no-files-found: error
 
   upload-dist-files:
-    name: Upload dist files
+    name: Upload canonical dist files
     runs-on: ubuntu-latest
-    needs: build-release
+    needs:
+      - set-timestamp
+      - build-release
     if: ${{ needs.build-release.outputs.dist-files != '[]' }}
     strategy:
       fail-fast: false
@@ -60,7 +89,7 @@ jobs:
       - name: Download dist bundle
         uses: actions/download-artifact@v4
         with:
-          name: dist-bundle
+          name: dist-bundle-${{ github.event.repository.name }}-${{ needs.set-timestamp.outputs.timestamp }}
           path: .
 
       - name: Compute artifact name
@@ -68,16 +97,38 @@ jobs:
         shell: bash
         run: |
           file="${{ matrix.file }}"
-          rel="${file#dist/}"
-          name="dist-${rel}"
-          name="${name//\//__}"
-          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          name="$(basename "${file}")"
+          timestamp="${{ needs.set-timestamp.outputs.timestamp }}"
+          echo "name=${name%.jar}-${timestamp}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve downloaded file path
+        id: resolve-file
+        shell: bash
+        run: |
+          original="${{ matrix.file }}"
+          candidate1="${original#./}"
+          candidate2="${original#./dist/bundles/}"
+
+          if [ -f "${original}" ]; then
+            resolved="${original}"
+          elif [ -f "${candidate1}" ]; then
+            resolved="${candidate1}"
+          elif [ -f "${candidate2}" ]; then
+            resolved="${candidate2}"
+          else
+            echo "Could not resolve downloaded file for matrix entry: ${original}"
+            echo "Top-level files for debugging:"
+            find . -maxdepth 6 -type f | sort
+            exit 1
+          fi
+
+          echo "path=${resolved}" >> "$GITHUB_OUTPUT"
 
       - name: Upload ${{ matrix.file }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact-name.outputs.name }}
-          path: ${{ matrix.file }}
+          path: ${{ steps.resolve-file.outputs.path }}
           if-no-files-found: error
 
   build-java25:

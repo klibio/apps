@@ -3,3 +3,25 @@ subprojects {
     failOnNoDiscoveredTests = false
   }
 }
+
+tasks.register('sonatypeUpload', Exec) {
+    onlyIf {
+      if (!System.getenv('SONATYPE_BEARER')) {
+        logger.lifecycle('SONATYPE_BEARER is not set. Set SONATYPE_BEARER to activate sonatype upload.')
+        return false
+      }
+      return true
+    }
+    def uploadScript = './.github/scripts/sonatype-upload.sh'
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+      commandLine 'bash', uploadScript, 'dist/bundles'
+    } else {
+      commandLine uploadScript, 'dist/bundles'
+    }
+    environment 'SONATYPE_BEARER', System.getenv('SONATYPE_BEARER') ?: ''
+}
+
+tasks.register('release') {
+  dependsOn subprojects.collect { it.tasks.matching { task -> task.name == 'release' } }
+  finalizedBy tasks.named('sonatypeUpload')
+}

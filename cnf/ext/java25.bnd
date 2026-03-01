@@ -25,16 +25,16 @@ Bundle-License:         "${SPDX-License-Identifier}";\
                         description="This program and the accompanying materials are made available under the terms of the Apache License, Version 2.0, or the Eclipse Public License 2.0.";\
                         link="https://opensource.org/licenses/Apache-2.0,https://opensource.org/licenses/EPL-2.0"
 Bundle-DocURL:          https://klib.io/
-Bundle-SCM:             url=https://github.com/klibio/mvn.deploy.bnd,\
-                        connection=scm:git:https://github.com/klibio/mvn.deploy.bnd.git,\
-                        developerConnection=scm:git:git@github.com/klibio/mvn.deploy.bnd.git,\
+Bundle-SCM:             url=https://github.com/klibio/apps,\
+                        connection=scm:git:https://github.com/klibio/apps.git,\
+                        developerConnection=scm:git:git@github.com/klibio/apps.git,\
                         tag=${git-sha-short}
 Bundle-Developers: \
     peterkir; \
         email=peter@klib.io; \
         name="Peter Kirschner"; \
         organization=Kirschners GmbH; \
-        organizationUrl=https://github.com/klibio/mvn.deploy.bnd; \
+        organizationUrl=https://github.com/klibio/apps; \
         roles="architect,developer"; \
         timezone="Europe/Berlin"
 

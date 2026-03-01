@@ -2,19 +2,23 @@
 -include: ${workspace}/cnf/includes/jdt.bnd
 
 # This build requires newer Bnd features
--require-bnd: "(version>=7.2.0)"
+-require-bnd: "(version>=7.2.1)"
 
 Bundle-ActivationPolicy: lazy
 
 # This is the version to baseline this build against. 
-# see /cnf/ext/repositories.bnd and /cnf/ext/gav_99_baseline.mvn
-baseline.version: 0.0.0
-base.version:     0.1.0
-Bundle-Version:   ${base.version}.${tstamp;yyyymmdd-HHmmss}-SNAPSHOT
+# see /cnf/ext/repositories.bnd and /cnf/ext/baseline.mvn
+baseline.version: 0.1.0
+
+base.version:     0.2.0
+Bundle-Version:   ${base.version}.${tstamp;yyyyMMdd-HHmmss}-SNAPSHOT
+
 # -snapshot unset (commented out) is a snapshot build. (e.g. 1.0.0-SNAPSHOT)
 # -snapshot set to a value (e.g. RC1) is a release build with the value as the Maven version qualifier. (e.g. 0.1.0-RC1)
 # -snapshot set to the empty string is a release build with no Maven version qualifier. (e.g. 0.1.0)
--snapshot:
+#-snapshot:
+
+-fixupmessages: "No translation found for macro: -snapshot";is:=ignore
 
 # Maven info. The maven artifactId defaults to Bundle-SymbolicName
 -groupid:               io.klib.apps
@@ -65,7 +69,6 @@ gpg: gpg --homedir ${def;USERHOME;~}/.gnupg --pinentry-mode loopback
 	io.klib.app.p2.mirror.service;          startlevel=6,\
     *;                                      startlevel=5,
 
-
 -make: (*).(jar);type=bnd; recipe="bnd/$1.bnd"
 -reproducible: true
 
@@ -75,3 +78,9 @@ gpg: gpg --homedir ${def;USERHOME;~}/.gnupg --pinentry-mode loopback
 # specific tool versions
 maven.target.version: 3.3.9
 aether.version: 1.0.2.v20150114
+
+# Baselining
+-baselinerepo: Baseline
+-baseline: *
+-baselineinludezeromajor: true
+-diffignore: Bundle-Version
