@@ -16,7 +16,7 @@ Bundle-Version:   ${base.version}.${tstamp;yyyyMMdd-HHmmss}-SNAPSHOT
 # -snapshot unset (commented out) is a snapshot build. (e.g. 1.0.0-SNAPSHOT)
 # -snapshot set to a value (e.g. RC1) is a release build with the value as the Maven version qualifier. (e.g. 0.1.0-RC1)
 # -snapshot set to the empty string is a release build with no Maven version qualifier. (e.g. 0.1.0)
--snapshot:
+#-snapshot:
 
 -fixupmessages: "No translation found for macro: -snapshot";is:=ignore
 
