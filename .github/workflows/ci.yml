@@ -34,13 +34,6 @@ jobs:
           ./gradlew --version
           ./gradlew --no-daemon clean release
 
-      - name: Upload dist bundle (internal)
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-bundle
-          path: ./dist/io/klib/apps/**/*.jar
-          if-no-files-found: error
-
       - name: Collect dist file list
         id: collect-dist-files
         shell: bash
@@ -48,8 +41,20 @@ jobs:
            echo -e "#\n# Collecting dist files...\n#\n"
            pwd
            ls -laR 
-#          files_json=$(find io.klib.app.p2.mirror/generated -maxdepth 1 -type f -name "*.jar" | sort | jq -R -s -c 'split("\n")[:-1]')
-#          echo "files=${files_json}" >> "$GITHUB_OUTPUT"
+           files_json=$(find ./io.klib.app.p2.mirror/generated -maxdepth 1 -type f -name "*.jar" | sort | jq -R -s -c 'split("\n")[:-1]')
+           echo "files=${files_json}" >> "$GITHUB_OUTPUT"
+           echo -e "\n#\n# Collected dist files:\n#\n"
+           echo "$files_json" | jq -r '.[]' | while read file; do
+             echo "  - $file"
+           done
+
+      - name: Upload dist bundle (internal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-bundle
+          path: ./dist/io/klib/apps/**/*.jar
+          if-no-files-found: error
+
 
 #  upload-dist-files:
 #    name: Upload dist files
