@@ -16,3 +16,4 @@ target/
 io.klib.app.p2.mirror/repo/
 .to
 .idea
+cnf/ext/DBG_*

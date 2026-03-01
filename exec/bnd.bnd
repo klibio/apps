@@ -1,8 +1,10 @@
 -dependson: io.klib.app.p2.mirror
 -sub: used_only_for_executables
 
+
 # exporting executable FAT jars
 -groupid: io.klib.apps
+
 -export: \
 	${workspace}/io.klib.app.p2.mirror/launchMirror.bndrun; \
 		name=p2-mirror-app.jar; \
@@ -12,4 +14,3 @@
 	${workspace}/io.klib.app.p2.mirror/launchMirror.bndrun; \
 		name=p2-mirror-app-win32.jar; \
 		bsn=p2.mirror.app.win32
-
