@@ -40,9 +40,6 @@ jobs:
         id: collect-dist-files
         shell: bash
         run: |
-           echo -e "#\n# Collecting dist files...\n#\n"
-           pwd
-           ls -laR 
            files_json=$(find ./io.klib.app.p2.mirror/generated -maxdepth 1 -type f -name "*.jar" | sort | jq -R -s -c 'split("\n")[:-1]')
            echo "files=${files_json}" >> "$GITHUB_OUTPUT"
            echo -e "\n#\n# Collected dist files:\n#\n"
@@ -54,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-bundle
-          path: ./dist/io/klib/apps/**/*.jar
+          path: ./dist/bundles/**/*.jar
           if-no-files-found: error
 
 
@@ -74,22 +71,22 @@ jobs:
 #          name: dist-bundle
 #          path: .
 
-#      - name: Compute artifact name
-#        id: artifact-name
-#        shell: bash
-#        run: |
-#          file="${{ matrix.file }}"
-#          rel="${file#dist/}"
-#          name="dist-${rel}"
-#          name="${name//\//__}"
-#          echo "name=${name}" >> "$GITHUB_OUTPUT"
-#
-#      - name: Upload ${{ matrix.file }}
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: ${{ steps.artifact-name.outputs.name }}
-#          path: ${{ matrix.file }}
-#          if-no-files-found: error
+      - name: Compute artifact name
+        id: artifact-name
+        shell: bash
+        run: |
+          file="${{ matrix.file }}"
+          rel="${file#dist/}"
+          name="dist-${rel}"
+          name="${name//\//__}"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload ${{ matrix.file }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: ${{ matrix.file }}
+          if-no-files-found: error
 
   build-java25:
     name: Build Verification (Java 25)
