@@ -30,6 +30,8 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
 
       - name: Release Build
+        env:
+          SONATYPE_BEARER: ${{ secrets.sonatype_bearer }}
         run: |
           ./gradlew --version
           ./gradlew --no-daemon clean release
