@@ -43,7 +43,7 @@ jobs:
 
       - name: Release Build
         env:
-          SONATYPE_BEARER: ${{ secrets.sonatype_bearer }}
+          SONATYPE_BEARER: ${{ secrets.SONATYPE_BEARER }}
         run: |
           ./gradlew --version
           ./gradlew --no-daemon clean release
@@ -101,11 +101,34 @@ jobs:
           timestamp="${{ needs.set-timestamp.outputs.timestamp }}"
           echo "name=${name%.jar}-${timestamp}" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve downloaded file path
+        id: resolve-file
+        shell: bash
+        run: |
+          original="${{ matrix.file }}"
+          candidate1="${original#./}"
+          candidate2="${original#./dist/bundles/}"
+
+          if [ -f "${original}" ]; then
+            resolved="${original}"
+          elif [ -f "${candidate1}" ]; then
+            resolved="${candidate1}"
+          elif [ -f "${candidate2}" ]; then
+            resolved="${candidate2}"
+          else
+            echo "Could not resolve downloaded file for matrix entry: ${original}"
+            echo "Top-level files for debugging:"
+            find . -maxdepth 6 -type f | sort
+            exit 1
+          fi
+
+          echo "path=${resolved}" >> "$GITHUB_OUTPUT"
+
       - name: Upload ${{ matrix.file }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact-name.outputs.name }}
-          path: ${{ matrix.file }}
+          path: ${{ steps.resolve-file.outputs.path }}
           if-no-files-found: error
 
   build-java25:
