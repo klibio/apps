@@ -1,0 +1,47 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "deps(actions)"
+      include: scope
+    groups:
+      actions-minor-patch:
+        update-types:
+          - minor
+          - patch
+      actions-major:
+        update-types:
+          - major
+
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: daily
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - gradle
+    commit-message:
+      prefix: "deps(gradle)"
+      include: scope
+    groups:
+      gradle-minor-patch:
+        update-types:
+          - minor
+          - patch
+      gradle-major:
+        update-types:
+          - major
