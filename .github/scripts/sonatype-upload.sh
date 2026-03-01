@@ -39,20 +39,29 @@ RELEASE_DIR=""
 # -------------------------------------------------------------------------
 
 detect_groupid() {
-	local pom_file group_id path_group
+	local path_groups
 
-	pom_file=$(find "${RELEASE_DIR}" -type f -name '*.pom' | head -n 1 || true)
-	if [[ -n "${pom_file}" ]]; then
-		group_id=$(grep -m1 -E '<groupId>[^<]+</groupId>' "${pom_file}" | sed -E 's/.*<groupId>([^<]+)<\/groupId>.*/\1/' || true)
-		if [[ -n "${group_id}" ]]; then
-			echo "${group_id}"
-			return 0
+	# Derive groupIds only from Maven repository paths.
+	# We intentionally do not inspect arbitrary files or recurse into jar contents.
+	path_groups=$(find "${RELEASE_DIR}" -type f \( -name '*.pom' -o -name 'maven-metadata.xml' \) -print0 | while IFS= read -r -d '' file; do
+		rel_path="${file#"${RELEASE_DIR}"/}"
+		rel_dir="$(dirname "${rel_path}")"
+
+		# Expected Maven paths:
+		#   group/path/artifact/version/artifact-version*.pom
+		#   group/path/artifact/maven-metadata.xml
+		if [[ "${rel_path}" == *.pom ]]; then
+			group_path="$(echo "${rel_dir}" | sed -E 's|/[^/]+/[^/]+$||')"
+		else
+			group_path="$(echo "${rel_dir}" | sed -E 's|/[^/]+$||')"
 		fi
-	fi
 
-	path_group=$(find "${RELEASE_DIR}" -type f | sed -n -E 's|^.*\/([^\/]+(\.[^\/]+)+)\/[^\/]+\/[^\/]+$|\1|p' | head -n 1 || true)
-	if [[ -n "${path_group}" ]]; then
-		echo "${path_group}"
+		if [[ -n "${group_path}" && "${group_path}" != "${rel_dir}" ]]; then
+			echo "${group_path}" | tr '/' '.'
+		fi
+	done | sed '/^$/d' | awk '!seen[$0]++')
+	if [[ -n "${path_groups}" ]]; then
+		printf '%s\n' "${path_groups}" | paste -sd, -
 		return 0
 	fi
 
