@@ -1,0 +1,10 @@
+#################################################
+# groupid/namespace io.klib.apps
+#################################################
+io.klib.apps:p2.mirror.app:${version_io.klib.apps}-SNAPSHOT
+io.klib.apps:p2.mirror.app.win32:${version_io.klib.apps}-SNAPSHOT
+
+#################################################
+# groupid/namespace io.klib.services
+#################################################
+io.klib.services:io.klib.app.p2.mirror.service:${version_io.klib.apps}-SNAPSHOT

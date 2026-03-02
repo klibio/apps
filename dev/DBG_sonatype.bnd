@@ -1,0 +1,37 @@
+maven_central:        'https://repo.maven.apache.org/maven2/'
+sonatype_snapshots:   'https://central.sonatype.com/repository/maven-snapshots/'
+
+sonatype_bearer: ${global;SONATYPE_BEARER;${env;SONATYPE_BEARER;unset}}
+
+-connection-settings:\
+	server;   id = ${sonatype_snapshots};\
+        password = ${sonatype_bearer};\
+          verify = false
+
+version_io.klib.apps=${base.version}
+
+-fixupmessages: \
+    "No metadata for revision io.klib.apps*",
+    "The query feature for search.maven.org/solrsearch is deprecated since bnd 7.2.0*"; is:=ignore
+
+# solr is only available on released artifacts
+-plugin.91.query_io.klib.apps = \
+    aQute.bnd.repository.maven.pom.provider.BndPomRepository; \
+    	tag        = DBG; \
+        releaseUrl = ${maven_central}; \
+        query      = 'q=g:%22io.klib.apps%22'; \
+        name       = 'DBG query # sonatype release # solr groupid:io.klib.apps'
+
+-plugin.92.query_io.klib.services = \
+    aQute.bnd.repository.maven.pom.provider.BndPomRepository; \
+    	tag        = DBG; \
+        releaseUrl = ${maven_central}; \
+        query      = 'q=g:%22io.klib.services%22'; \
+        name       = 'DBG query # sonatype release # solr groupid:io.klib.services'
+
+-plugin.93.sonatype_snapshots:\
+    aQute.bnd.repository.maven.provider.MavenBndRepository; \
+    	tag         = DBG; \
+        snapshotUrl = ${sonatype_snapshots}; \
+        index       = ${.}/DBG_sonatype.mvn; \
+        name        = 'DBG bnd sonatype snapshots'

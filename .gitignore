@@ -17,3 +17,4 @@ io.klib.app.p2.mirror/repo/
 .to
 .idea
 cnf/ext/DBG_*
+cnf/release.mvn
