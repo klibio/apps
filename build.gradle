@@ -1,7 +1,29 @@
+import java.time.Duration
+
+def testTaskTimeoutMinutes = providers
+  .gradleProperty('testTaskTimeoutMinutes')
+  .map { it as int }
+  .orElse(5)
+
 subprojects {
   tasks.withType(Test).configureEach {
     failOnNoDiscoveredTests = false
+    timeout = Duration.ofMinutes(testTaskTimeoutMinutes.get())
   }
+
+  tasks
+    .matching { task -> task.name.toLowerCase().startsWith('test') }
+    .configureEach { task ->
+      task.timeout = Duration.ofMinutes(testTaskTimeoutMinutes.get())
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+  graph.allTasks
+    .findAll { task -> task.name.toLowerCase().startsWith('test') && task.hasProperty('timeout') }
+    .each { task ->
+      task.timeout = Duration.ofMinutes(testTaskTimeoutMinutes.get())
+    }
 }
 
 tasks.register('sonatypeUpload', Exec) {

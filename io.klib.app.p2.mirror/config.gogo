@@ -1,0 +1,67 @@
+# Configure P2Mirror with Apache Felix Config Admin `cm:*` commands.
+#
+# Factory PID:
+#   io.klib.app.p2.mirror.service.P2Mirror
+#
+# This script shows the canonical Felix factory flow:
+#   cm:createFactoryConfiguration
+#   cm:getConfiguration
+#   cm:getFactoryConfiguration
+#   cm:listConfigurations
+# and uses Gogo variables to capture the generated PID automatically.
+#
+# Adjust URIs to your local environment before running these commands.
+
+# 1) Create/get deterministic factory configuration and capture the Configuration object.
+cfg = (cm:getFactoryConfiguration io.klib.app.p2.mirror.service.P2Mirror local)
+
+# 2) Read and print the generated PID from the Configuration object.
+pid = ($cfg pid)
+echo Using PID $pid
+
+# 3) Resolve that PID as a regular Configuration object.
+cfg = (cm:getConfiguration $pid)
+
+# 4) Configure properties for that PID using your Felix CM property/update commands.
+#    Typical keys for this component:
+#      repoRootUri=file:/C:/p2mirror/repo
+#      agentUri=file:/C:/p2mirror/agent (optional; script uses component default)
+#      destinationName=local
+#      raw=true
+#      verbose=false
+#      downloadMetadata=true
+#      artifactCompressed=true
+#      metadataCompressed=true
+#      atomic=true
+#      latestVersionOnly=false
+#      strictDependenciesOnly=false
+#      followFilteredRequirementsOnly=false
+#      includeOptionalDependencies=false
+
+userDir = (property user.dir)
+userDirUnix = ($userDir replaceAll "\\\\" "/")
+rtRoot = ($userDirUnix concat "/generated/rt_gogo")
+repoRoot = ($rtRoot concat "/repo")
+
+propsClass = ((bundle 0) loadclass java.util.Hashtable)
+props = ($propsClass newInstance)
+($props put repoRootUri $repoRoot)
+($props put destinationName local)
+($props put raw true)
+($props put verbose false)
+($props put downloadMetadata true)
+($props put artifactCompressed true)
+($props put metadataCompressed true)
+($props put atomic true)
+($props put latestVersionOnly false)
+($props put strictDependenciesOnly false)
+($props put followFilteredRequirementsOnly false)
+($props put includeOptionalDependencies false)
+
+($cfg update $props)
+
+# 5) List created P2Mirror factory configurations.
+cm:listConfigurations "(service.factoryPid=io.klib.app.p2.mirror.service.P2Mirror)"
+
+# 6) Validate that at least one service instance exists.
+p2mirror:mirrorStatus

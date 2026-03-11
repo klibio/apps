@@ -1,6 +1,6 @@
 package io.klib.app.p2.mirror.service;
 
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.Objects;
 
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.equinox.p2.core.IProvisioningAgent;
@@ -17,140 +18,112 @@ import org.eclipse.equinox.p2.core.IProvisioningAgentProvider;
 import org.eclipse.equinox.p2.internal.repository.tools.MirrorApplication;
 import org.eclipse.equinox.p2.internal.repository.tools.RepositoryDescriptor;
 import org.eclipse.equinox.p2.internal.repository.tools.SlicingOptions;
-import org.eclipse.equinox.p2.repository.artifact.IArtifactRepositoryManager;
-import org.eclipse.equinox.p2.repository.metadata.IMetadataRepositoryManager;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.Designate;
 
-@Component(immediate = true)
-public class P2Mirror {
+@Component(service = io.klib.app.p2.mirror.api.P2Mirror.class)
+@Designate(ocd = P2MirrorConfig.class, factory = true)
+public class P2Mirror implements io.klib.app.p2.mirror.api.P2Mirror {
+	private static final String USER_DIR = System.getProperty("user.dir").replace("\\", "/");
+	private static final String LOCAL_ROOT_URI = USER_DIR + "/repo";
+	private static final String LOCAL_AGENT_URI = "file:/" + USER_DIR + "/p2";
 
 	@Reference
 	private IProvisioningAgentProvider agentProvider;
 
-	private IProvisioningAgent agent;
-	@SuppressWarnings("unused")
-	private IArtifactRepositoryManager aRepoMgr;
-	@SuppressWarnings("unused")
-	private IMetadataRepositoryManager mRepoMgr;
-	
-	private static final Duration SERVICE_LOOKUP_TIMEOUT = Duration.ofSeconds(5);
+	private volatile IProvisioningAgent agent;
+	private volatile ServiceRegistration<IProvisioningAgent> registration;
+	private volatile P2MirrorConfig config;
+
+	private static final Duration SERVICE_LOOKUP_TIMEOUT = Duration.ofSeconds(30);
 	private static final Duration SERVICE_LOOKUP_RETRY_DELAY = Duration.ofMillis(250);
 
-	@SuppressWarnings("unused")
-	private static final String FEATURE_GROUP = ".feature.group";
-	
-	private static final String USER_DIR = System.getProperty("user.dir").replace("\\", "/");
-	private static final String LOCAL_ROOT_URI = USER_DIR + "/repo";
-	
-	private String url = "https://bndtools.jfrog.io/artifactory/rel_7.2.1/";
-	private String suffix = url;
-	private String localUri;
+	private static final String[] METADATA_FILES = new String[] {
+		"p2.index", "content.xml.xz", "content.jar", "artifacts.xml.xz", "artifacts.jar"
+	};
 
-	public void activate(BundleContext ctx) throws Exception {
-		System.out.println("started");
+	@Activate
+	void activate(BundleContext context, P2MirrorConfig config) throws Exception {
+		this.config = Objects.requireNonNull(config, "config");
+		this.agent = agentProvider.createAgent(resolveAgentLocation(config));
+		this.registration = context.registerService(IProvisioningAgent.class, agent, null);
 
-		agent = agentProvider.createAgent(new URI("file:/" + USER_DIR + "/p2"));
-		ctx.registerService(IProvisioningAgent.class, agent, null);
+		awaitAgentServiceSafely("org.eclipse.equinox.p2.repository.metadataRepositoryManager", Object.class);
+		awaitAgentServiceSafely("org.eclipse.equinox.p2.repository.artifactRepositoryManager", Object.class);
+	}
 
-		mRepoMgr = getMetadataRepositoryManager();
-		aRepoMgr = getArtifactRepositoryManager();
+	@Deactivate
+	void deactivate() {
+		ServiceRegistration<IProvisioningAgent> localRegistration = registration;
+		registration = null;
+		if (localRegistration != null) {
+			localRegistration.unregister();
+		}
 
+		IProvisioningAgent localAgent = agent;
+		agent = null;
+		if (localAgent != null) {
+			localAgent.stop();
+		}
+	}
+
+	@Override
+	public void mirror(URI repo) throws Exception {
+		if (repo == null) {
+			throw new IllegalArgumentException("repo must not be null");
+		}
+
+		P2MirrorConfig localConfig = Objects.requireNonNull(config, "config");
 		MirrorApplication mirrorApplication = new MirrorApplication();
-		RepositoryDescriptor srcRepoDesc = new RepositoryDescriptor();
 
-		if (url.startsWith("file:")) {
-			suffix = url.toString().replaceFirst("file:", "").replaceFirst(":", "_");
-		} else {
-			suffix = url.toString().replaceFirst(".*?:", "").replaceAll("//", "/");
-		}
-		if (url.toString().endsWith("!/")) {
-			suffix = suffix.toString().replaceAll(".jar!/", "_jar").replaceFirst(".*/", "");
-		}
+		RepositoryDescriptor sourceDescriptor = new RepositoryDescriptor();
+		sourceDescriptor.setLocation(repo);
+		mirrorApplication.addSource(sourceDescriptor);
 
-		srcRepoDesc.setLocation(new URI(url));
-		mirrorApplication.addSource(srcRepoDesc);
+		String suffix = suffixFromSource(repo.toString());
+		Path targetRoot = resolveRepoRootPath(localConfig);
+		Path targetDirectory = targetRoot.resolve(suffix).normalize();
+		Files.createDirectories(targetDirectory);
 
-		localUri = LOCAL_ROOT_URI + suffix;
-		File targetLocalStorage = new File(localUri);
-		targetLocalStorage.mkdirs();
-		String name = "x";
-		// create metadata repository
-		RepositoryDescriptor destMetadataRepoDesc = createTargetRepoDesc(targetLocalStorage, name,
-				RepositoryDescriptor.KIND_METADATA);
-		mirrorApplication.addDestination(destMetadataRepoDesc);
+		RepositoryDescriptor metadataDestination = createTargetRepoDesc(targetDirectory, localConfig.destinationName(),
+			RepositoryDescriptor.KIND_METADATA, localConfig.metadataCompressed(), localConfig.atomic());
+		mirrorApplication.addDestination(metadataDestination);
 
-		// create artifact repository
-		RepositoryDescriptor destArtifactRepoDesc = createTargetRepoDesc(targetLocalStorage, name,
-				RepositoryDescriptor.KIND_ARTIFACT);
-		destArtifactRepoDesc.setCompressed(true);
-		destArtifactRepoDesc.setFormat(new URI("file:///Z:/ENGINE_LIB_DIR/cec/p2_repo_packedSiblings"));
-		mirrorApplication.addDestination(destArtifactRepoDesc);
-		mirrorApplication.setRaw(true);
-		mirrorApplication.setVerbose(true);
+		RepositoryDescriptor artifactDestination = createTargetRepoDesc(targetDirectory, localConfig.destinationName(),
+			RepositoryDescriptor.KIND_ARTIFACT, localConfig.artifactCompressed(), localConfig.atomic());
+		mirrorApplication.addDestination(artifactDestination);
 
-		SlicingOptions sliceOpts = new SlicingOptions();
-//		sliceOpts.latestVersionOnly(true);
-//		sliceOpts.considerStrictDependencyOnly(false);
-//		sliceOpts.followOnlyFilteredRequirements(false);
-//		sliceOpts.includeOptionalDependencies(false);
-//		sliceOpts.latestVersionOnly(false);
-		mirrorApplication.setSlicingOptions(sliceOpts);
+		mirrorApplication.setRaw(localConfig.raw());
+		mirrorApplication.setVerbose(localConfig.verbose());
 
-		/* 
-		 * List<IInstallableUnit> ius = new ArrayList<IInstallableUnit>();
-		 * InstallableUnit iu = new InstallableUnit();
-		 * iu.setId("org.eclipse.nebula.widgets.paperclips.feature"+FEATURE_GROUP);
-		 * iu.setVersion(Version.create("0.0.0")); ius.add(iu);
-		 * 
-		 * iu = new InstallableUnit();
-		 * iu.setId("org.eclipse.nebula.paperclips.widgets");
-		 * iu.setVersion(Version.create("0.0.0")); ius.add(iu);
-		 * 
-		 * mirrorApplication.setSourceIUs(ius);
-		 */
+		SlicingOptions slicingOptions = new SlicingOptions();
+		slicingOptions.latestVersionOnly(localConfig.latestVersionOnly());
+		slicingOptions.considerStrictDependencyOnly(localConfig.strictDependenciesOnly());
+		slicingOptions.followOnlyFilteredRequirements(localConfig.followFilteredRequirementsOnly());
+		slicingOptions.includeOptionalDependencies(localConfig.includeOptionalDependencies());
+		mirrorApplication.setSlicingOptions(slicingOptions);
+
 		mirrorApplication.run(new NullProgressMonitor());
-		
-		downloadMetadata();
 
-		System.out.println("finished");
-	}
-
-	private RepositoryDescriptor createTargetRepoDesc(final File targetLocation, final String name, final String kind) {
-		RepositoryDescriptor destRepoDesc = new RepositoryDescriptor();
-		destRepoDesc.setKind(kind);
-		destRepoDesc.setCompressed(true);
-		destRepoDesc.setLocation(targetLocation.toURI());
-		destRepoDesc.setName(name);
-		destRepoDesc.setAtomic("true"); // what is this for?^
-		// destination.setFormat(sourceLocation); // can be used to define a target
-		// format based on existing repository
-		return destRepoDesc;
-	}
-
-	public IMetadataRepositoryManager getMetadataRepositoryManager() {
-		IMetadataRepositoryManager repoMgr = awaitAgentService(IMetadataRepositoryManager.SERVICE_NAME,
-				IMetadataRepositoryManager.class);
-
-		if (repoMgr == null) {
-			throw new IllegalStateException("Provisioning agent service unavailable: "
-					+ IMetadataRepositoryManager.SERVICE_NAME + " after " + SERVICE_LOOKUP_TIMEOUT.toSeconds() + "s");
+		if (localConfig.downloadMetadata()) {
+			downloadMetadata(repo, targetDirectory);
 		}
-
-		return repoMgr;
 	}
 
-	public IArtifactRepositoryManager getArtifactRepositoryManager() {
-		IArtifactRepositoryManager repoMgr = awaitAgentService(IArtifactRepositoryManager.SERVICE_NAME,
-				IArtifactRepositoryManager.class);
-
-		if (repoMgr == null) {
-			throw new IllegalStateException("Provisioning agent service unavailable: "
-					+ IArtifactRepositoryManager.SERVICE_NAME + " after " + SERVICE_LOOKUP_TIMEOUT.toSeconds() + "s");
-		}
-
-		return repoMgr;
+	private RepositoryDescriptor createTargetRepoDesc(Path targetLocation, String name, String kind, boolean compressed,
+		boolean atomic) {
+		RepositoryDescriptor destination = new RepositoryDescriptor();
+		destination.setKind(kind);
+		destination.setCompressed(compressed);
+		destination.setLocation(targetLocation.toUri());
+		destination.setName(name);
+		destination.setAtomic(Boolean.toString(atomic));
+		return destination;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -170,10 +143,11 @@ public class P2Mirror {
 		}
 
 		if (service == null) {
-			return null;
+			throw new IllegalStateException("Provisioning agent service unavailable: " + serviceName + " after "
+				+ SERVICE_LOOKUP_TIMEOUT.toSeconds() + "s");
 		}
 
-		if (!serviceType.isInstance(service)) {
+		if (!serviceType.isAssignableFrom(service.getClass())) {
 			throw new IllegalStateException("Provisioning agent service '" + serviceName + "' is not of type "
 					+ serviceType.getName() + ": " + service.getClass().getName());
 		}
@@ -181,38 +155,136 @@ public class P2Mirror {
 		return (T) service;
 	}
 
-	private void downloadMetadata() {
-		String[] files = new String[] { "p2.index", "content.xml.xz", "content.jar", "artifacts.xml.xz",
-				"artifacts.jar" };
-
+	private <T> void awaitAgentServiceSafely(String serviceName, Class<T> serviceType) {
 		try {
-			for (int i = 0; i < files.length; i++) {
-				String fileUrl = url + files[i];
-				URL url = new URI(fileUrl).toURL();
-				HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-				connection.setRequestMethod("HEAD");
-
-				int responseCode = connection.getResponseCode();
-				if (responseCode == HttpURLConnection.HTTP_OK) {
-					// File exists, download it
-					String fileName = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
-					String filePath = localUri + fileName;
-
-					Path destination = Path.of(filePath);
-					Files.copy(url.openStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-
-					System.out.println("File downloaded successfully: " + filePath);
-				} else {
-					// File does not exist
-					System.out.println("File not found: " + fileUrl);
-				}
-			}
-		} catch (IOException | URISyntaxException e) {
-			e.printStackTrace();
+			awaitAgentService(serviceName, serviceType);
+		} catch (IllegalStateException exception) {
+			System.err.println("P2Mirror activation continuing without ready agent service " + serviceName + ": "
+				+ exception.getMessage());
 		}
 	}
 
-	public void addMeth() {
-		System.out.println("hallo");
+	private void downloadMetadata(URI sourceRepo, Path targetDirectory) throws IOException, URISyntaxException {
+		for (String fileName : METADATA_FILES) {
+			URI fileUri = resolveRepositoryFile(sourceRepo, fileName);
+			Path destination = targetDirectory.resolve(fileName);
+			if ("file".equalsIgnoreCase(fileUri.getScheme())) {
+				Path source = Path.of(fileUri);
+				if (Files.exists(source)) {
+					Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+				}
+				continue;
+			}
+
+			if ("jar".equalsIgnoreCase(fileUri.getScheme())) {
+				copyJarEntryIfPresent(fileUri, destination);
+				continue;
+			}
+
+			if (isHttpUri(fileUri) && existsHttp(fileUri)) {
+				URL url = fileUri.toURL();
+				Files.copy(url.openStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+			}
+		}
+	}
+
+	private URI resolveRepositoryFile(URI sourceRepo, String fileName) {
+		if ("jar".equalsIgnoreCase(sourceRepo.getScheme())) {
+			return URI.create(sourceRepo.toString() + fileName);
+		}
+		return sourceRepo.resolve(fileName);
+	}
+
+	private void copyJarEntryIfPresent(URI fileUri, Path destination) throws IOException {
+		try (var inputStream = fileUri.toURL().openStream()) {
+			Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
+		} catch (FileNotFoundException exception) {
+			// Optional metadata file not present in the source archive.
+		}
+	}
+
+	private boolean isHttpUri(URI fileUri) {
+		String scheme = fileUri.getScheme();
+		return "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+	}
+
+	private boolean existsHttp(URI fileUri) throws IOException {
+		HttpURLConnection connection = (HttpURLConnection) fileUri.toURL().openConnection();
+		try {
+			connection.setRequestMethod("HEAD");
+			int responseCode = connection.getResponseCode();
+			return responseCode == HttpURLConnection.HTTP_OK;
+		} finally {
+			connection.disconnect();
+		}
+	}
+
+	private String suffixFromSource(String url) {
+		String suffix;
+		if (url.startsWith("file:")) {
+			suffix = url.replaceFirst("file:", "").replaceFirst(":", "_");
+		} else {
+			suffix = url.replaceFirst(".*?:", "").replaceAll("//", "/");
+		}
+		while (suffix.startsWith("/")) {
+			suffix = suffix.substring(1);
+		}
+		if (url.endsWith("!/")) {
+			suffix = suffix.replaceAll(".jar!/", "_jar").replaceFirst(".*/", "");
+		}
+		return suffix;
+	}
+
+	private String resolveRepoRootUri(P2MirrorConfig config) {
+		if (P2MirrorConfig.LOCAL_ROOT_URI.equals(config.repoRootUri())) {
+			return LOCAL_ROOT_URI;
+		}
+		return config.repoRootUri();
+	}
+
+	private Path resolveRepoRootPath(P2MirrorConfig config) {
+		return resolvePath(resolveRepoRootUri(config));
+	}
+
+	private String resolveAgentUri(P2MirrorConfig config) {
+		if (P2MirrorConfig.AGENT_URI.equals(config.agentUri())) {
+			return LOCAL_AGENT_URI;
+		}
+		return config.agentUri();
+	}
+
+	private URI resolveAgentLocation(P2MirrorConfig config) throws URISyntaxException {
+		String agentUri = resolveAgentUri(config);
+		if (looksLikeWindowsPath(agentUri)) {
+			return Path.of(agentUri).toUri();
+		}
+
+		URI uri = new URI(agentUri);
+		if (uri.getScheme() != null) {
+			return uri;
+		}
+
+		return Path.of(agentUri).toUri();
+	}
+
+	private Path resolvePath(String value) {
+		if (looksLikeWindowsPath(value)) {
+			return Path.of(value);
+		}
+
+		try {
+			URI uri = URI.create(value);
+			if (uri.getScheme() != null) {
+				return Path.of(uri);
+			}
+		} catch (IllegalArgumentException exception) {
+			// Fall back to treating the value as a filesystem path.
+		}
+
+		return Path.of(value);
+	}
+
+	private boolean looksLikeWindowsPath(String value) {
+		return value != null && value.matches("^[a-zA-Z]:[\\\\/].*");
 	}
 }

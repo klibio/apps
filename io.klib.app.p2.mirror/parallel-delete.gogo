@@ -1,0 +1,28 @@
+# Remove the two named parallel P2Mirror factory instances.
+#
+# Factory PID:
+#   io.klib.app.p2.mirror.service.P2Mirror
+#
+# Targets:
+#   local-a
+#   local-b
+
+# Instance A --------------------------------------------------------------
+cfgA = (cm:getFactoryConfiguration io.klib.app.p2.mirror.service.P2Mirror local-a)
+pidA = ($cfgA pid)
+echo Deleting instance A with PID $pidA
+cm:getConfiguration $pidA
+cm:delete
+
+# Instance B --------------------------------------------------------------
+cfgB = (cm:getFactoryConfiguration io.klib.app.p2.mirror.service.P2Mirror local-b)
+pidB = ($cfgB pid)
+echo Deleting instance B with PID $pidB
+cm:getConfiguration $pidB
+cm:delete
+
+# Verify no P2Mirror factory configurations remain for these instances.
+cm:listConfigurations "(service.factoryPid=io.klib.app.p2.mirror.service.P2Mirror)"
+
+# Verify service instances are no longer available.
+p2mirror:mirrorStatus

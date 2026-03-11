@@ -1,0 +1,4 @@
+io.klib.services:io.klib.app.p2.mirror.test:0.2.0-SNAPSHOT
+io.klib.services:io.klib.app.p2.mirror.api:0.2.0-SNAPSHOT
+io.klib.services:io.klib.app.p2.mirror.gogo:0.2.0-SNAPSHOT
+io.klib.services:io.klib.app.p2.mirror.service:0.2.0-SNAPSHOT

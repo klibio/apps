@@ -1,22 +1,43 @@
+-dependson: io.klib.app.p2.mirror
+
+-buildpath: \
+	io.klib.app.p2.mirror.api,\
+	osgi.core,\
+	org.osgi.service.cm,\
+	junit-jupiter-api;version='[5.10,6)',\
+	junit-platform-commons;version='[1.10,2)',\
+	org.opentest4j;version='[1.3,2)',\
+	org.apiguardian.api
+
+-testpath: \
+	junit-jupiter-api;version='[5.10,6)',\
+	junit-jupiter-engine;version='[5.10,6)',\
+	junit-platform-commons;version='[1.10,2)',\
+	junit-platform-engine;version='[1.10,2)',\
+	junit-platform-launcher;version='[1.10,2)',\
+	org.opentest4j;version='[1.3,2)',\
+	org.osgi.test.common;version=latest,\
+	org.osgi.test.junit5;version=latest
+
+-tester: biz.aQute.tester.junit-platform
+
+Test-Cases: ${classes;HIERARCHY_INDIRECTLY_ANNOTATED;org.junit.platform.commons.annotation.Testable;CONCRETE;PUBLIC}
+
+-runee: JavaSE-21
 -runfw: org.eclipse.osgi;version='[3.24,4)'
--runee: JavaSE-25
 
 -resolve: auto
 -resolve.effective: active
 -runprovidedcapabilities: ${native_capability}
 -runpath: org.apache.aries.spifly.dynamic.framework.extension
--runvm: \n\
-    -Dosgi.framework.extensions=org.apache.aries.spifly.dynamic.framework.extension \n\
-    -Dorg.eclipse.ecf.provider.filetransfer.retrieve.multithreaded=true \n\
-	-Dorg.eclipse.ecf.provider.filetransfer.retrieve.readTimeout=15000 \n\
-	-Dorg.eclipse.ecf.provider.filetransfer.retrieve.connectTimeout=10000 \n\
-	-Dorg.eclipse.ecf.provider.filetransfer.retrieve.workerThreads=16 \n\
-	-Declipse.p2.max.threads=16 -Declipse.p2.force.threading=true
-
-# eclipse.p2.max.threads to control the number of active thread. The default is 4.
-# eclipse.p2.force.threading to enable or disable the multi threaded download. The default is true.
-# eclipse.p2.mirrors to disable the usage of mirrors when downloading artifacts. The default is true.
-# eclipse.p2.reportDownloadStatistics to disable the reporting of download statistics during p2 operations
+-runvm: \
+    -Dosgi.framework.extensions=org.apache.aries.spifly.dynamic.framework.extension \
+    -Dorg.eclipse.ecf.provider.filetransfer.retrieve.multithreaded=true \
+	-Dorg.eclipse.ecf.provider.filetransfer.retrieve.readTimeout=15000 \
+	-Dorg.eclipse.ecf.provider.filetransfer.retrieve.connectTimeout=10000 \
+	-Dorg.eclipse.ecf.provider.filetransfer.retrieve.workerThreads=16 \
+	-Declipse.p2.max.threads=16 -Declipse.p2.force.threading=true \
+	-DGITHUB_BEARER=${env;GITHUB_BEARER}
 
 -runproperties: \
 	osgi.console=,\
@@ -24,10 +45,9 @@
 	osgi.console.enable.builtin=false,\
 	org.osgi.framework.system.packages.extra='javax.*,org.xml.sax,org.xml.sax.helpers',\
 	eclipse.p2.max.threads=16,\
-	launch.trace=false
-
-bundles.p2.director.win32: \
-	bnd.identity;id='org.eclipse.ecf.provider.filetransfer.httpclient5.win32'
+	launch.trace=false,\
+	tester.continuous=false,\
+	tester.trace=true
 
 bundles.p2.director: \
 	bnd.identity;id='org.eclipse.core.jobs',\
@@ -57,7 +77,7 @@ bundles.p2.director: \
 	bnd.identity;id='org.eclipse.equinox.registry',\
 	bnd.identity;id='org.eclipse.osgi.services',\
 	bnd.identity;id='org.sat4j.core',\
-	bnd.identity;id='org.sat4j.pb',\
+	bnd.identity;id='org.sat4j.pb'
 
 -runblacklist: \
 	bnd.identity;id='osgi.*',\
@@ -69,30 +89,25 @@ bundles.p2.director: \
 
 -runrequires: \
 	${bundles.p2.director},\
-	bnd.identity;id='io.klib.app.p2.mirror.api',\
-	bnd.identity;id='io.klib.app.p2.mirror.gogo',\
-	bnd.identity;id='io.klib.app.p2.mirror.service',\
-	bnd.identity;id='org.apache.felix.gogo.command';version='[1.1.2,2.0.0)',\
-	bnd.identity;id='org.apache.felix.gogo.shell';version='[1.1.4,2.0.0)',\
+	bnd.identity;id='org.osgi.service.cm',\
 	bnd.identity;id='org.apache.felix.configadmin';version='[1.9.10,2.0.0)',\
-	bnd.identity;id='org.apache.felix.configadmin'
-
+	bnd.identity;id='org.apache.felix.configadmin',\
+	bnd.identity;id='io.klib.app.p2.mirror.api',\
+	bnd.identity;id='io.klib.app.p2.mirror.service',\
+	bnd.identity;id='io.klib.app.p2.mirror.test',\
+	bnd.identity;id='org.apache.felix.configadmin',\
+	bnd.identity;id=junit-jupiter-engine
 -runbundles: \
 	bcpg;version='[1.82.0,1.82.1)';startlevel=5,\
 	bcprov;version='[1.82.0,1.82.1)';startlevel=5,\
 	bcutil;version='[1.82.0,1.82.1)';startlevel=5,\
 	ch.qos.logback.core;version='[1.2.11,1.2.12)';startlevel=1,\
-	io.klib.app.p2.mirror.api;version=snapshot;startlevel=6,\
-	io.klib.app.p2.mirror.gogo;version=snapshot;startlevel=6,\
-	io.klib.app.p2.mirror.service;version=snapshot;startlevel=6,\
 	jcl.over.slf4j;version='[2.0.17,2.0.18)';startlevel=1,\
 	jul.to.slf4j;version='[2.0.17,2.0.18)';startlevel=1,\
 	log4j.over.slf4j;version='[2.0.17,2.0.18)';startlevel=1,\
 	org.apache.aries.spifly.dynamic.bundle;version='[1.3.7,1.3.8)';startlevel=2,\
 	org.apache.aries.spifly.dynamic.framework.extension;version='[1.2.1,1.2.2)';startlevel=1,\
-	org.apache.felix.gogo.command;version='[1.1.2,1.1.3)';startlevel=5,\
-	org.apache.felix.gogo.runtime;version='[1.1.6,1.1.7)';startlevel=5,\
-	org.apache.felix.gogo.shell;version='[1.1.4,1.1.5)';startlevel=5,\
+	org.apache.felix.configadmin;version='[1.9.10,1.9.11)';startlevel=5,\
 	org.apache.felix.scr;version='[2.2.14,2.2.15)';startlevel=3,\
 	org.apache.httpcomponents.client5.httpclient5;version='[5.5.1,5.5.2)';startlevel=5,\
 	org.apache.httpcomponents.core5.httpcore5;version='[5.3.6,5.3.7)';startlevel=5,\
@@ -160,4 +175,13 @@ bundles.p2.director: \
 	org.tukaani.xz;version='[1.11.0,1.11.1)';startlevel=5,\
 	slf4j.api;version='[2.0.17,2.0.18)';startlevel=5,\
 	slf4j.osgi;version='[2.0.0,2.0.1)';startlevel=1,\
+	io.klib.app.p2.mirror.api;version=snapshot;startlevel=6,\
+	io.klib.app.p2.mirror.test;version=snapshot;startlevel=6,\
+	junit-jupiter-api;version='${range;[===,==+);${junit.jupiter.version}}';startlevel=5,\
+	junit-jupiter-engine;version='${range;[===,==+);${junit.jupiter.version}}';startlevel=5,\
+	junit-platform-commons;version='${range;[===,==+);${junit.platform.version}}';startlevel=5,\
+	junit-platform-engine;version='${range;[===,==+);${junit.platform.version}}';startlevel=5,\
+	junit-platform-launcher;version='${range;[===,==+);${junit.platform.version}}';startlevel=5,\
+	org.opentest4j;version='[1.3.0,1.3.1)';startlevel=5,\
+	io.klib.app.p2.mirror.service;version=snapshot;startlevel=6,\
 	org.apache.felix.configadmin;version='[1.9.10,1.9.11)';startlevel=5
