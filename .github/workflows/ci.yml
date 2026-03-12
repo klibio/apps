@@ -142,4 +142,6 @@ jobs:
         uses: gradle/actions/wrapper-validation@748248ddd2a24f49513d8f472f81c3a07d4d50e1
 
       - name: Build (no artifact upload)
+        env:
+          SONATYPE_BEARER: ${{ secrets.SONATYPE_BEARER }}
         run: ./gradlew --no-daemon clean build
