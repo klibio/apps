@@ -143,5 +143,5 @@ jobs:
 
       - name: Build (no artifact upload)
         env:
-          SONATYPE_BEARER: ${{ secrets.SONATYPE_BEARER }}
+            GITHUB_BEARER: ${{ secrets.GITHUB_BEARER }}
         run: ./gradlew --no-daemon clean build
