@@ -88,6 +88,13 @@ detect_versions() {
 	done | sed '/^$/d' | awk '!seen[$0]++'
 }
 
+require_sonatype_bearer() {
+    if [[ -z "${SONATYPE_BEARER:-}" ]]; then
+        echo "Error: SONATYPE_BEARER environment variable is required." >&2
+        exit 1
+    fi
+}
+
 usage() {
 	cat <<-EOF
 	Usage: $(basename "$0") [options] <release-dir>
