@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       dist-files: ${{ steps.collect-dist-files.outputs.files }}
-      timestamp: ${{ steps.build-release.outputs.timestamp }}
+      timestamp: ${{ steps.timestamp.outputs.timestamp }}
 
     steps:
       - name: Set Timestamp
@@ -60,7 +60,7 @@ jobs:
       - name: Upload dist bundle (internal)
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
-          name: dist-bundle-${{ github.event.repository.name }}-${{ steps.build-release.outputs.timestamp }}
+          name: dist-bundle-${{ github.event.repository.name }}-${{ steps.timestamp.outputs.timestamp }}
           path: |
             ./dist/bundles/**/*.jar
             !./dist/bundles/**/*-javadoc*.jar
@@ -146,3 +146,53 @@ jobs:
         env:
             GITHUB_BEARER: ${{ secrets.GH_PAT_public_read_example_pde_rcp_2026 }}
         run: ./gradlew --no-daemon clean build
+
+  publish-latest-main:
+    name: Publish latest-main release
+    runs-on: ubuntu-latest
+    needs:
+      - build-release
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Download dist bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: dist-bundle-${{ github.event.repository.name }}-${{ needs.build-release.outputs.timestamp }}
+          path: .
+
+      - name: Create or update latest-main release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          mapfile -t JARS < <(find dist/bundles -name "*.jar" \
+                               ! -name "*-javadoc*.jar" \
+                               ! -name "*-sources*.jar" \
+                               -type f | sort)
+
+          if [ ${#JARS[@]} -eq 0 ]; then
+            echo "No JAR files found – skipping release update."
+            exit 0
+          fi
+
+          echo "Artifacts to publish:"
+          printf '  %s\n' "${JARS[@]}"
+
+          gh release delete latest-main --yes --cleanup-tag 2>/dev/null || true
+
+          printf 'Automatically updated on every successful build of the `main` branch.\n\nCommit: [`%s`](https://github.com/%s/commit/%s)\n' \
+            "${GITHUB_SHA:0:12}" "${GITHUB_REPOSITORY}" "${GITHUB_SHA}" > /tmp/release-notes.md
+
+          gh release create latest-main \
+            --title "Latest main branch build" \
+            --notes-file /tmp/release-notes.md \
+            --prerelease \
+            --target "${GITHUB_SHA}" \
+            "${JARS[@]}"

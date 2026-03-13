@@ -1,0 +1,15 @@
+plugins:
+  - jekyll-github-metadata
+  - jekyll-seo-tag
+  - jekyll-sitemap
+markdown: kramdown
+
+github: [metadata]
+repository: klibio/apps
+
+defaults:
+  -
+    scope:
+      path: ""
+    values:
+      layout: default
