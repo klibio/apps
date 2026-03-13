@@ -37,9 +37,10 @@ jobs:
       - name: Release Build
         env:
           SONATYPE_BEARER: ${{ secrets.SONATYPE_BEARER }}
+          GITHUB_BEARER: ${{ secrets.GH_PAT_public_read_example_pde_rcp_2026 }}
         run: |
           ./gradlew --version
-          ./gradlew --no-daemon clean release
+          ./gradlew --no-daemon clean build testOSGi release
 
       - name: Collect dist file list
         id: collect-dist-files
@@ -143,5 +144,5 @@ jobs:
 
       - name: Build (no artifact upload)
         env:
-            GITHUB_BEARER: ${{ secrets.GITHUB_BEARER }}
+            GITHUB_BEARER: ${{ secrets.GH_PAT_public_read_example_pde_rcp_2026 }}
         run: ./gradlew --no-daemon clean build
