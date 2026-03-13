@@ -32,14 +32,15 @@ jobs:
           cache: gradle
 
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@0723195856401067f7a2779048b490ace7a47d7c
+        uses: gradle/actions/wrapper-validation@748248ddd2a24f49513d8f472f81c3a07d4d50e1
 
       - name: Release Build
         env:
           SONATYPE_BEARER: ${{ secrets.SONATYPE_BEARER }}
+          GITHUB_BEARER: ${{ secrets.GH_PAT_public_read_example_pde_rcp_2026 }}
         run: |
           ./gradlew --version
-          ./gradlew --no-daemon clean release
+          ./gradlew --no-daemon clean build testOSGi release
 
       - name: Collect dist file list
         id: collect-dist-files
@@ -139,9 +140,9 @@ jobs:
           cache: gradle
 
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@0723195856401067f7a2779048b490ace7a47d7c
+        uses: gradle/actions/wrapper-validation@748248ddd2a24f49513d8f472f81c3a07d4d50e1
 
       - name: Build (no artifact upload)
         env:
-          SONATYPE_BEARER: ${{ secrets.SONATYPE_BEARER }}
+            GITHUB_BEARER: ${{ secrets.GH_PAT_public_read_example_pde_rcp_2026 }}
         run: ./gradlew --no-daemon clean build

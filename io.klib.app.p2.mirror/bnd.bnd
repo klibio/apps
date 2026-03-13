@@ -1,6 +1,6 @@
 -sub *.bnd
 
--buildpath.local: \
+-buildpath: \
 	org.eclipse.osgi,\
 	org.eclipse.osgi.services,\
 	org.eclipse.core.contenttype,\
@@ -35,6 +35,8 @@
 	org.eclipse.equinox.p2.transport.ecf,\
 	org.eclipse.equinox.p2.updatechecker,\
 	org.eclipse.equinox.p2.updatesite,\
+	org.osgi.service.cm,\
+	org.osgi.service.metatype.annotations,\
 	org.tukaani.xz
 
 -includeresource: \

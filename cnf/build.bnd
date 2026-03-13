@@ -66,7 +66,7 @@ gpg: gpg --homedir ${def;USERHOME;~}/.gnupg --pinentry-mode loopback
 	org.apache.aries.spifly.dynamic.framework.extension; startlevel=1,\
 	org.apache.aries.spifly.dynamic.bundle; startlevel=2,\
     org.apache.felix.scr;                   startlevel=3,\
-	io.klib.app.p2.mirror.service;          startlevel=6,\
+	io.klib.app.p2.mirror.*;                startlevel=6,\
     *;                                      startlevel=5,
 
 -make: (*).(jar);type=bnd; recipe="bnd/$1.bnd"

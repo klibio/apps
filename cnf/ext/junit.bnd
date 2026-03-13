@@ -42,15 +42,15 @@ junit-osgi: \
 	junit-platform-launcher;version='${range;[===,==+);${junit.platform.version}}',\
 	assertj-core;version=latest,\
 	net.bytebuddy.byte-buddy;version=latest,\
-	org.opentest4j;version=latest,\
+	org.opentest4j;version='${range;[===,==+);${opentest4j.version}}',\
 	org.apiguardian:apiguardian-api;version=latest,\
-	junit-jupiter-api;version=latest,\
-	junit-jupiter-engine;version=latest,\
-	junit-jupiter-params;version=latest,\
+	junit-jupiter-api;version='${range;[===,==+);${junit.jupiter.version}}',\
+	junit-jupiter-engine;version='${range;[===,==+);${junit.jupiter.version}}',\
+	junit-jupiter-params;version='${range;[===,==+);${junit.jupiter.version}}',\
 	org.hamcrest;version=latest,\
 	org.awaitility;version=latest,\
 	org.apache.servicemix.bundles.junit;version=latest,\
-	junit-vintage-engine;version=latest,\
+	junit-vintage-engine;version='${range;[===,==+);${junit.jupiter.version}}',\
 	org.osgi.service.coordinator;version=latest,\
 	org.osgi.service.log;version=latest,\
 	org.osgi.service.repository;version=latest,\

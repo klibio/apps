@@ -24,7 +24,8 @@ sonatype_bearer:     ${env;SONATYPE_BEARER}
     	tags        = '-'; \
         name        = "Release";\
         releaseUrl  = ${fileuri;${releaserepo}};\
-        snapshotUrl = ${fileuri;${releaserepo}},\
+        snapshotUrl = ${fileuri;${releaserepo}};\
+        noupdateOnRelease=true,\
     aQute.bnd.repository.maven.provider.MavenBndRepository;\
     	tags       = 'Baseline'; \
         name       = "Baseline";\

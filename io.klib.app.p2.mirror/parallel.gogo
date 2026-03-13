@@ -1,0 +1,65 @@
+# Configure two parallel P2Mirror factory instances with Apache Felix Config Admin `cm:*` commands.
+#
+# Factory PID:
+#   io.klib.app.p2.mirror.service.P2Mirror
+#
+# This script creates/updates two named instances:
+#   local-a
+#   local-b
+#
+# It uses Gogo variables to capture generated PIDs automatically.
+
+# Instance A --------------------------------------------------------------
+cfgA = (cm:getFactoryConfiguration io.klib.app.p2.mirror.service.P2Mirror local-a)
+pidA = ($cfgA pid)
+echo Configuring instance A with PID $pidA
+cfgA = (cm:getConfiguration $pidA)
+userDirA = (property user.dir)
+userDirAUnix = ($userDirA replaceAll "\\\\" "/")
+rootA = ($userDirAUnix concat "/generated/rt_gogo")
+repoA = ($rootA concat "/repo-a")
+propsClass = ((bundle 0) loadclass java.util.Hashtable)
+propsA = ($propsClass newInstance)
+($propsA put repoRootUri $repoA)
+($propsA put destinationName local-a)
+($propsA put raw true)
+($propsA put verbose false)
+($propsA put downloadMetadata true)
+($propsA put artifactCompressed true)
+($propsA put metadataCompressed true)
+($propsA put atomic true)
+($propsA put latestVersionOnly false)
+($propsA put strictDependenciesOnly false)
+($propsA put followFilteredRequirementsOnly false)
+($propsA put includeOptionalDependencies false)
+($cfgA update $propsA)
+
+# Instance B --------------------------------------------------------------
+cfgB = (cm:getFactoryConfiguration io.klib.app.p2.mirror.service.P2Mirror local-b)
+pidB = ($cfgB pid)
+echo Configuring instance B with PID $pidB
+cfgB = (cm:getConfiguration $pidB)
+userDirB = (property user.dir)
+userDirBUnix = ($userDirB replaceAll "\\\\" "/")
+rootB = ($userDirBUnix concat "/generated/rt_gogo")
+repoB = ($rootB concat "/repo-b")
+propsB = ($propsClass newInstance)
+($propsB put repoRootUri $repoB)
+($propsB put destinationName local-b)
+($propsB put raw true)
+($propsB put verbose false)
+($propsB put downloadMetadata true)
+($propsB put artifactCompressed true)
+($propsB put metadataCompressed true)
+($propsB put atomic true)
+($propsB put latestVersionOnly false)
+($propsB put strictDependenciesOnly false)
+($propsB put followFilteredRequirementsOnly false)
+($propsB put includeOptionalDependencies false)
+($cfgB update $propsB)
+
+# Verify both factory configurations exist.
+cm:listConfigurations "(service.factoryPid=io.klib.app.p2.mirror.service.P2Mirror)"
+
+# Verify service instances are available.
+p2mirror:mirrorStatus

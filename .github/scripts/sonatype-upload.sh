@@ -7,7 +7,9 @@
 # combination of Gradle / Maven / bnd builds have populated a shared
 # release directory.
 #
-# Uploads release bundles via /api/v1/publisher/upload.
+# Supports both release and snapshot deployments:
+#   - Release: uploads via /api/v1/publisher/upload
+#   - Snapshot: deploys via Maven-style PUT to /repository/maven-snapshots/
 #
 # Note: uses `jar cMf` (from JDK) instead of `zip` for git bash compatibility.
 #
@@ -15,62 +17,26 @@
 #   SONATYPE_BEARER=<token> ./.github/scripts/sonatype-upload.sh [options] <release-dir>
 #
 # Options:
+#   --snapshot                                   Deploy as snapshot (to maven-snapshots repo)
 #   --publishing-type <AUTOMATIC|USER_MANAGED>   (default: USER_MANAGED, release only)
 #   --name <deployment-name>                     (default: auto-generated)
 #   --upload-url <url>                           (default: Sonatype Central Portal release URL)
+#   --snapshot-url <url>                         (default: Sonatype Central snapshot repo)
 #
 # Environment:
-#   SONATYPE_BEARER   – Bearer token for authentication (required)
+#   SONATYPE_BEARER   – Bearer token for authentication (required unless --dry-run)
 #
 # -------------------------------------------------------------------------
 set -euo pipefail
 
 # ---- defaults -----------------------------------------------------------
 UPLOAD_URL="https://central.sonatype.com/api/v1/publisher/upload"
+SNAPSHOT_URL="https://central.sonatype.com/repository/maven-snapshots/"
 PUBLISHING_TYPE="USER_MANAGED"   # USER_MANAGED (manual) or AUTOMATIC
 DEPLOYMENT_NAME=""
+SNAPSHOT=false
 RELEASE_DIR=""
 # -------------------------------------------------------------------------
-
-analyze_versions() {
-	local versions
-	local snapshot_versions
-	local release_versions
-
-	# Derive versions from Maven repository paths:
-	#   group/path/artifact/version/artifact-version*.pom
-	versions=$(find "${RELEASE_DIR}" -type f -name '*.pom' -print0 | while IFS= read -r -d '' file; do
-		rel_path="${file#"${RELEASE_DIR}"/}"
-		rel_dir="$(dirname "${rel_path}")"
-		version="$(echo "${rel_dir}" | awk -F/ '{print $(NF)}')"
-
-		if [[ -n "${version}" ]]; then
-			echo "${version}"
-		fi
-	done | sed '/^$/d' | awk '!seen[$0]++')
-
-	snapshot_versions=$(printf '%s\n' "${versions}" | grep -- '-SNAPSHOT$' | sed '/^$/d' | paste -sd, - || true)
-	release_versions=$(printf '%s\n' "${versions}" | grep -v -- '-SNAPSHOT$' | sed '/^$/d' | paste -sd, - || true)
-
-	if [[ -n "${snapshot_versions}" && -n "${release_versions}" ]]; then
-		echo "Error: mixed versions detected in ${RELEASE_DIR}:" >&2
-		echo "  SNAPSHOT versions: ${snapshot_versions}" >&2
-		echo "  Release versions:  ${release_versions}" >&2
-		echo "Please upload snapshots and releases separately." >&2
-		exit 1
-	fi
-
-	if [[ -n "${snapshot_versions}" ]]; then
-		DETECTED_VERSION_MODE="snapshot"
-		DETECTED_VERSION_LIST="${snapshot_versions}"
-	elif [[ -n "${release_versions}" ]]; then
-		DETECTED_VERSION_MODE="release"
-		DETECTED_VERSION_LIST="${release_versions}"
-	else
-		DETECTED_VERSION_MODE="unknown"
-		DETECTED_VERSION_LIST=""
-	fi
-}
 
 detect_groupid() {
 	local path_groups
@@ -102,6 +68,33 @@ detect_groupid() {
 	echo "unknown-group"
 }
 
+detect_versions() {
+	find "${RELEASE_DIR}" -type f | while IFS= read -r file; do
+		rel_path="${file#"${RELEASE_DIR}"/}"
+		file_name="$(basename "${rel_path}")"
+
+		# Ignore artifact-level metadata files (no version segment in path)
+		if [[ "${file_name}" == "maven-metadata.xml"* ]]; then
+			continue
+		fi
+
+		# Maven repository layout expected for versioned artifacts:
+		#   group/path/artifact/version/artifact-version.ext[.sha1|.md5|...]
+		version_dir="$(basename "$(dirname "${rel_path}")")"
+
+		if [[ -n "${version_dir}" ]]; then
+			echo "${version_dir}"
+		fi
+	done | sed '/^$/d' | awk '!seen[$0]++'
+}
+
+require_sonatype_bearer() {
+    if [[ -z "${SONATYPE_BEARER:-}" ]]; then
+        echo "Error: SONATYPE_BEARER environment variable is required." >&2
+        exit 1
+    fi
+}
+
 usage() {
 	cat <<-EOF
 	Usage: $(basename "$0") [options] <release-dir>
@@ -109,13 +102,15 @@ usage() {
 	Upload a local Maven repository folder to Sonatype Central Portal.
 
 	Options:
+	  --snapshot                                   Deploy as snapshot
 	  --publishing-type <AUTOMATIC|USER_MANAGED>  Publishing type (default: USER_MANAGED)
 	  --name <name>                               Deployment name (default: auto-generated)
 	  --upload-url <url>                           Release upload endpoint URL
+	  --snapshot-url <url>                         Snapshot repository URL
 	  -h, --help                                  Show this help message
 
 	Environment:
-	  SONATYPE_BEARER   Bearer token for authentication (required)
+	  SONATYPE_BEARER   Bearer token for authentication (required unless --dry-run)
 	EOF
 	exit "${1:-0}"
 }
@@ -123,9 +118,11 @@ usage() {
 # ---- parse arguments ----------------------------------------------------
 while [[ $# -gt 0 ]]; do
 	case "$1" in
+		--snapshot)        SNAPSHOT=true; shift ;;
 		--publishing-type) PUBLISHING_TYPE="$2"; shift 2 ;;
 		--name)            DEPLOYMENT_NAME="$2"; shift 2 ;;
 		--upload-url)      UPLOAD_URL="$2"; shift 2 ;;
+		--snapshot-url)    SNAPSHOT_URL="$2"; shift 2 ;;
 		-h|--help)         usage 0 ;;
 		-*)                echo "Unknown option: $1" >&2; usage 1 ;;
 		*)                 RELEASE_DIR="$1"; shift ;;
@@ -142,20 +139,7 @@ if [[ ! -d "${RELEASE_DIR}" ]]; then
 	exit 1
 fi
 
-: "${SONATYPE_BEARER:?Error: SONATYPE_BEARER environment variable is not set}"
-
-# ---- validate repository version mode -----------------------------------
-analyze_versions
-echo "Detected version mode: ${DETECTED_VERSION_MODE}"
-if [[ -n "${DETECTED_VERSION_LIST}" ]]; then
-	echo "Detected versions: ${DETECTED_VERSION_LIST}"
-fi
-
-if [[ "${DETECTED_VERSION_MODE}" == "snapshot" ]]; then
-	echo "Skipping upload: only SNAPSHOT versions were found in ${RELEASE_DIR}." >&2
-	echo "This script uploads release bundles only." >&2
-	exit 0
-fi
+RELEASE_DIR="${RELEASE_DIR%/}"
 
 # Deployment ID file stored beside the release dir
 DEPLOYMENTID_FILE="${RELEASE_DIR%/}_DEPLOYMENTID.txt"
@@ -163,7 +147,41 @@ DEPLOYMENTID_FILE="${RELEASE_DIR%/}_DEPLOYMENTID.txt"
 # ---- build deployment name ----------------------------------------------
 if [[ -z "${DEPLOYMENT_NAME}" ]]; then
 	GROUP_ID=$(detect_groupid)
-	DEPLOYMENT_NAME="uploaded ${GROUP_ID} on $(date '+%Y%m%d-%H%M%S')"
+	if [[ "${SNAPSHOT}" == "true" ]]; then
+		DEPLOYMENT_NAME="uploaded ${GROUP_ID} on $(date '+%Y%m%d-%H%M%S')"
+	else
+		DEPLOYMENT_NAME="uploaded ${GROUP_ID} on $(date '+%Y%m%d-%H%M%S')"
+	fi
+fi
+
+# ---- snapshot deployment ------------------------------------------------
+if [[ "${SNAPSHOT}" == "true" ]]; then
+	echo "Deploying snapshots to ${SNAPSHOT_URL} ..."
+
+	# Ensure trailing slash
+	SNAPSHOT_BASE="${SNAPSHOT_URL%/}/"
+
+	find "${RELEASE_DIR}" -type f | while IFS= read -r file; do
+		# Compute the relative path within the release dir
+		REL_PATH="${file#"${RELEASE_DIR}"}"
+		REL_PATH="${REL_PATH#/}"
+
+		TARGET_URL="${SNAPSHOT_BASE}${REL_PATH}"
+
+		echo "  PUT ${REL_PATH}"
+		HTTP_CODE=$(curl -sS -w '%{http_code}' -o /dev/null \
+			-H "Authorization: Bearer ${SONATYPE_BEARER}" \
+			--upload-file "${file}" \
+			"${TARGET_URL}")
+
+		if [[ "${HTTP_CODE}" -lt 200 || "${HTTP_CODE}" -ge 300 ]]; then
+			echo "Error: Upload of ${REL_PATH} failed with HTTP ${HTTP_CODE}" >&2
+			exit 1
+		fi
+	done
+
+	echo "Snapshot deployment completed successfully."
+	exit 0
 fi
 
 # ---- release deployment: create bundle zip ------------------------------
@@ -191,6 +209,8 @@ echo "Uploading bundle to Sonatype Central Portal ..."
 echo "  URL: ${UPLOAD_URL}"
 echo "  Publishing type: ${PUBLISHING_TYPE}"
 echo "  Name: ${DEPLOYMENT_NAME}"
+
+require_sonatype_bearer
 
 HTTP_RESPONSE="${TMPDIR:-/tmp}/sonatype-response-$$.txt"
 trap 'rm -f "${BUNDLE_ZIP}" "${HTTP_RESPONSE}"' EXIT
