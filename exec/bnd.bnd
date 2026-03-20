@@ -6,10 +6,9 @@
 
 -export: \
 	${workspace}/io.klib.app.p2.mirror/launchMirror.bndrun; \
-		name=p2-mirror-app.jar; \
-		bsn=p2.mirror.app; \
-		version=${Bundle-Version}, \
+		name = p2-mirror-app.jar; \
+		bsn  = p2.mirror.app, \
 	\
 	${workspace}/io.klib.app.p2.mirror/launchMirror_win32.bndrun; \
-		name=p2-mirror-app-win32.jar; \
-		bsn=p2.mirror.app.win32
+		name = p2-mirror-app-win32.jar; \
+		bsn  = p2.mirror.app.win32

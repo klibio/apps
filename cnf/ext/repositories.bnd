@@ -1,39 +1,40 @@
-releaserepo:         ${workspace}/dist/bundles
+releaserepo:         ${.}/../../dist/bundles
 mavencentral:        https://repo.maven.apache.org/maven2
 sonatype_snapshots:  https://central.sonatype.com/repository/maven-snapshots
-sonatype_bearer:     ${env;SONATYPE_BEARER}
+
+#sonatype_bearer:    ${global;SONATYPE_BEARER;${env;SONATYPE_BEARER;unset}}
+sonatype_bearer:     M2JXTkVlejU6VFcvdlA3MGd4c0szQnV2emdNQUtFSWJlT3NrMjUveWxnR3FIYko3b0pEMkI=
 
 -connection-settings:\
-   server;    id = ${sonatype_snapshots};\
-        password = ${sonatype_bearer};\
+   server;    id = ${sonatype_snapshots}; \
+        password = ${sonatype_bearer}; \
           verify = false
 
 -plugin.0.Main:\
-    aQute.bnd.repository.maven.provider.MavenBndRepository;\
+    aQute.bnd.repository.maven.provider.MavenBndRepository; \
     	tags        = 'resolve'; \
-        name        = "Maven Central";\
-        releaseUrl  = ${mavencentral};\
-        snapshotUrl = ${sonatype_snapshots};\
-        index       = "${.}/central.mvn";\
+        name        = "Maven Central"; \
+        releaseUrl  = ${mavencentral}; \
+        snapshotUrl = ${sonatype_snapshots}; \
+        index       = "${.}/central.mvn"; \
         readOnly    = true,\
-    aQute.bnd.repository.maven.provider.MavenBndRepository;\
+    aQute.bnd.repository.maven.provider.MavenBndRepository; \
         tags        = '-'; \
-        name        = "Local";\
+        name        = "Local"; \
         noupdateOnRelease=true,\
-    aQute.bnd.repository.maven.provider.MavenBndRepository;\
-    	tags        = '-'; \
-        name        = "Release";\
-        releaseUrl  = ${fileuri;${releaserepo}};\
-        snapshotUrl = ${fileuri;${releaserepo}};\
-        noupdateOnRelease=true,\
-    aQute.bnd.repository.maven.provider.MavenBndRepository;\
+    aQute.bnd.repository.maven.provider.MavenBndRepository; \
+    	tags         = '-'; \
+        name         = "Release"; \
+        releaseUrl   = ${fileuri;${releaserepo}}; \
+        snapshotUrl  = ${sonatype_snapshots}; \
+        noupdateOnRelease = false, \
+    aQute.bnd.repository.maven.provider.MavenBndRepository; \
     	tags       = 'Baseline'; \
-        name       = "Baseline";\
-        releaseUrl = ${mavencentral};\
-        index      = ${.}/baseline.mvn;\
-        readOnly   = true,\
+        name       = "Baseline"; \
+        releaseUrl = ${mavencentral}; \
+        index      = ${.}/baseline.mvn; \
+        readOnly   = true
 
 -buildrepo: Local
 -releaserepo: Release
-
 -baselinerepo: Baseline

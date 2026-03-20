@@ -11,7 +11,7 @@
 
 # release
 export SONATYPE_BEARER=
-export GPG_KEYNAME=
+export GPG_KEY_ID=
 export GPG_PASSPHRASE=
 
 ./gradlew clean release

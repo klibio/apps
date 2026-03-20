@@ -32,6 +32,10 @@ tasks.register('sonatypeUpload', Exec) {
         logger.lifecycle('SONATYPE_BEARER is not set. Set SONATYPE_BEARER to activate sonatype upload.')
         return false
       }
+      if (!System.getenv('GPG_KEY_ID') || !System.getenv('GPG_PASSPHRASE')) {
+        logger.lifecycle('GPG_KEY_ID and GPG_PASSPHRASE must be set to activate sonatype upload.')
+        return false
+      }
       return true
     }
     def uploadScript = './.github/scripts/sonatype-upload.sh'
