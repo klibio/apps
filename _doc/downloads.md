@@ -1,5 +1,6 @@
 ---
 title: Downloads
+nav_order: 2
 ---
 # Latest Build Artifacts
 
