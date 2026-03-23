@@ -1,3 +1,7 @@
+---
+title: Home
+nav_order: 1
+---
 # io.klib.apps
 
 OSGi application bundles for [klib.io](https://klib.io)
